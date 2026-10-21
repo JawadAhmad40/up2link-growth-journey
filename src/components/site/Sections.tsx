@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { Check, Minus } from "lucide-react";
 import { packages, getPriceDisplay, caseStudies, type PackageId, type PricingPackage } from "@/config/site";
 import { cn } from "@/lib/utils";
 
-function SectionHead({ eyebrow, title, dark, className }: { eyebrow: string; title: React.ReactNode; dark?: boolean; className?: string }) {
+function SectionHead({ eyebrow, title, dark, className }: { eyebrow: string; title: ReactNode; dark?: boolean; className?: string }) {
   return (
     <div className={cn("max-w-3xl", className)}>
       <p className={cn("eyebrow", dark ? "text-lime" : "text-muted-foreground")}>
