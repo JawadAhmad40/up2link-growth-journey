@@ -15,13 +15,13 @@ describe("pricing packages", () => {
   });
 
   it("unconfigured price shows Discuss pricing, never $0", () => {
-    const d = getPriceDisplay({ ...packages[0], monthlyPrice: null });
+    const d = getPriceDisplay({ ...packages[0]!, monthlyPrice: null });
     expect(d.configured).toBe(false);
     expect(d.primary).toBe("Discuss pricing");
   });
 
   it("configured price renders from config", () => {
-    const pkg: PricingPackage = { ...packages[0], monthlyPrice: 2500, commitmentTotal: 7500 };
+    const pkg: PricingPackage = { ...packages[0]!, monthlyPrice: 2500, commitmentTotal: 7500 };
     const d = getPriceDisplay(pkg);
     expect(d.primary).toBe("$2,500");
     expect(d.configured && d.total).toBe("$7,500 total for 90 days");
