@@ -195,7 +195,7 @@ function Scene({ f, mobile }: { f: Frame; mobile: boolean }) {
         <g clipPath="url(#aboveHorizon)" opacity={f.logo}>
           <g transform={`translate(0 ${logoY})`} fontFamily="Space Grotesk, sans-serif" fontWeight={700} fontSize={96} letterSpacing={-5}>
             <text x={X2 - 30} y={0} textAnchor="end" fill="var(--snow)">up</text>
-            <text x={X2} y={0} textAnchor="middle" fill="var(--lime)" transform={`skewX(-12) translate(${-0.21 * -34} 0)`}>2</text>
+            <text x={X2} y={0} textAnchor="middle" fill="var(--lime)" transform="skewX(-12)">2</text>
             <text x={X2 + 30} y={0} textAnchor="start" fill="var(--snow)">linkd</text>
           </g>
         </g>
