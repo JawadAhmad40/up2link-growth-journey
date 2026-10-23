@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 
 export const navLinks = [
   { href: "#system", label: "The System" },
-  { href: "#services", label: "Services" },
   { href: "#pricing", label: "Pricing" },
   { href: "#how", label: "How It Works" },
   { href: "#results", label: "Results" },
