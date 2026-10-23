@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { type RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CREST_X,
   DURATION,
@@ -120,6 +120,8 @@ const KX = 520;
 const K = { x: KX, y: roadY(KX) - LANE - 6 };
 const UPWORK_PATH = `M-60,760 C120,720 260,640 ${K.x},${K.y}`;
 const LINKEDIN_PATH = `M1080,250 C900,330 700,520 ${K.x},${K.y}`;
+// The LinkedIn stream flies in right to left; its label runs the other way so it reads upright
+const LINKEDIN_LABEL_PATH = `M${K.x},${K.y} C700,520 900,330 1080,250`;
 const MERGED_LINE: Pt[] = [{ ...K, s: 1 }, ...sampleRoad(-6, KX + 10), ...sampleDistance(-6)];
 const MERGED_CLIMB = polyline([{ ...K, s: 1 }, ...sampleRoad(-6, KX + 10), crestPoint(-6)]);
 const revealMerged = revealer(MERGED_LINE);
@@ -197,19 +199,25 @@ function Car({ f, uid }: { f: Frame; uid: string }) {
 
 /* ---------- scene ---------- */
 
-function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
+function Scene({ f, mobile, uid, safeLeft }: { f: Frame; mobile: boolean; uid: string; safeLeft: number }) {
   const { fx, fy, z } = f.cam;
-  const camT = `translate(500 450) scale(${z}) translate(${-fx} ${-fy})`;
+  const X2 = 490;
+  // While the car would sit under the hero text (desktop), slide the world right to keep it clear,
+  // easing off as the logo rises so the logo's right edge (X2 + 255) always stays in frame
+  const carScreenX = 500 + (f.car.x - fx) * z;
+  const logoRoom = Math.max(0, 485 - (X2 + 255 - fx) * z);
+  const cap = 260 + (logoRoom - 260) * f.logoGuard;
+  const shift = Math.max(0, Math.min(cap, safeLeft + 150 * z * f.car.scale + 24 - carScreenX));
+  const camT = `translate(${500 + shift} 450) scale(${z}) translate(${-fx} ${-fy})`;
   const par = (k: number) => `translate(${(500 - fx) * k} ${(470 - fy) * k * 0.5})`;
   const logoY = 260 + (1 - f.logo) * 150;
-  const X2 = 490;
   const glow = 0.25 + 0.75 * f.roadLit + f.ambient * 0;
   const merged = f.merged > 0 ? revealMerged(f.merged) : null;
 
   return (
     <svg
       viewBox="0 0 1000 900"
-      preserveAspectRatio={mobile ? "xMidYMid slice" : "xMidYMax slice"}
+      preserveAspectRatio={mobile ? "xMidYMid slice" : "xMaxYMax slice"}
       className="absolute inset-0 h-full w-full"
       role="img"
       aria-label="A dark sports car struggles up a steep road until the up2linkd logo lights the scene; Upwork and LinkedIn streams merge into one path and the car accelerates toward the horizon."
@@ -228,6 +236,11 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
           <stop offset="0" style={{ stopColor: "var(--graphite)" }} />
           <stop offset="0.4" style={{ stopColor: "var(--graphite-2)" }} />
           <stop offset="1" style={{ stopColor: "var(--obsidian)" }} />
+        </linearGradient>
+        <linearGradient id={`${uid}-haze`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: "var(--graphite)", stopOpacity: 0 }} />
+          <stop offset="0.5" style={{ stopColor: "var(--graphite)", stopOpacity: 0.7 }} />
+          <stop offset="1" style={{ stopColor: "var(--graphite)", stopOpacity: 0 }} />
         </linearGradient>
         {/* lightest at the crest, darkening down the climb and into the distance */}
         <linearGradient id={`${uid}-asphalt`} gradientUnits="userSpaceOnUse" x1="-100" y1="900" x2={VP.x} y2={HORIZON_Y}>
@@ -279,6 +292,8 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
 
         {/* ground plane out to the horizon */}
         <path d={GROUND} fill={`url(#${uid}-terrain)`} />
+        {/* haze softens the line where the ground meets the mountains */}
+        <rect x={-1000} y={HORIZON_Y - 60} width={3000} height={120} fill={`url(#${uid}-haze)`} />
 
         {/* horizon glow intensifies with brand */}
         <ellipse cx={VP.x} cy={HORIZON_Y} rx={520} ry={120} fill={`url(#${uid}-horizonGlow)`} opacity={0.12 + 0.7 * f.roadLit + 0.1 * Math.sin(f.t * 1.2) * f.ambient} />
@@ -305,7 +320,7 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
           </g>
         )}
         {/* energy beam from logo to road */}
-        <path d={`M${X2},250 C${X2 + 10},380 ${K.x - 20},${K.y - 140} ${K.x},${K.y}`} fill="none" stroke="var(--lime)" strokeWidth={3} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.beam} opacity={f.beam * (1 - f.merged * 0.8)} />
+        <path d={`M${X2},250 C${X2 + 10},380 ${K.x - 20},${K.y - 140} ${K.x},${K.y}`} fill="none" stroke="var(--lime)" strokeWidth={3} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.beam} opacity={f.beam * (1 - f.merged)} />
 
         {/* road + hill; the road narrows to the horizon */}
         <path d={HILL_FACE} fill={`url(#${uid}-terrain)`} />
@@ -318,8 +333,8 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
         <path d={NEAR_EDGE_GLOW} fill="var(--lime)" filter={`url(#${uid}-soft)`} opacity={0.6 * f.roadLit} />
 
         {/* channel streams */}
-        <Stream d={UPWORK_PATH} progress={f.upwork} label="UPWORK" id="s-up" uid={uid} />
-        <Stream d={LINKEDIN_PATH} progress={f.linkedin} label="LINKEDIN" id="s-li" uid={uid} />
+        <Stream d={UPWORK_PATH} progress={f.upwork} label="UPWORK" labelAt="50%" id="s-up" uid={uid} />
+        <Stream d={LINKEDIN_PATH} labelPath={LINKEDIN_LABEL_PATH} progress={f.linkedin} label="LINKEDIN" labelAt="38%" id="s-li" uid={uid} />
         {merged && (
           <>
             <path d={ribbon(merged, 18)} fill="var(--lime)" filter={`url(#${uid}-soft)`} opacity={0.55} />
@@ -340,15 +355,18 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
   );
 }
 
-function Stream({ d, progress, label, id, uid }: { d: string; progress: number; label: string; id: string; uid: string }) {
+type StreamProps = { d: string; labelPath?: string; progress: number; label: string; labelAt: string; id: string; uid: string };
+
+function Stream({ d, labelPath, progress, label, labelAt, id, uid }: StreamProps) {
   if (progress <= 0) return null;
   const pathId = `${uid}-${id}`;
   return (
     <g>
-      <path id={pathId} d={d} fill="none" stroke="var(--lime)" strokeWidth={16} filter={`url(#${uid}-soft)`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - progress} opacity={0.5} />
+      <path id={pathId} d={labelPath ?? d} fill="none" />
+      <path d={d} fill="none" stroke="var(--lime)" strokeWidth={16} filter={`url(#${uid}-soft)`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - progress} opacity={0.5} />
       <path d={d} fill="none" stroke="var(--lime)" strokeWidth={3.5} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - progress} />
       <text fontFamily="Space Grotesk, sans-serif" fontSize={20} fontWeight={600} letterSpacing={5} fill="var(--lime)" opacity={Math.min(1, progress * 1.6)} dy={-14}>
-        <textPath href={`#${pathId}`} startOffset="12%">{label}</textPath>
+        <textPath href={`#${pathId}`} startOffset={labelAt}>{label}</textPath>
       </text>
     </g>
   );
@@ -356,7 +374,7 @@ function Stream({ d, progress, label, id, uid }: { d: string; progress: number; 
 
 /* ---------- controller ---------- */
 
-export function CinematicCarScene({ mobile = false }: { mobile?: boolean }) {
+export function CinematicCarScene({ mobile = false, avoid }: { mobile?: boolean; avoid?: RefObject<HTMLElement | null> }) {
   const [t, setT] = useState(0);
   const [reduced, setReduced] = useState(false);
   const [run, setRun] = useState(0);
@@ -364,6 +382,27 @@ export function CinematicCarScene({ mobile = false }: { mobile?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   // SVG ids are document-wide; prefix them so the desktop and mobile scenes don't collide
   const uid = useId();
+  // How far into the scene (viewBox units) the `avoid` element reaches, so the car can stay clear
+  const [safeLeft, setSafeLeft] = useState(0);
+
+  useEffect(() => {
+    const node = root.current;
+    const text = avoid?.current;
+    if (!node || !text) return;
+    const measure = () => {
+      const box = node.getBoundingClientRect();
+      if (!box.width || !box.height) return setSafeLeft(0);
+      // The desktop scene is anchored right ("xMaxYMax slice"), so any crop comes off the left
+      const k = Math.max(box.width / 1000, box.height / 900);
+      const cropLeft = 1000 * k - box.width;
+      setSafeLeft(Math.max(0, (text.getBoundingClientRect().right - box.left + cropLeft) / k));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(node);
+    ro.observe(text);
+    return () => ro.disconnect();
+  }, [avoid]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -415,7 +454,7 @@ export function CinematicCarScene({ mobile = false }: { mobile?: boolean }) {
 
   return (
     <div ref={root} className="absolute inset-0">
-      <Scene f={frame} mobile={mobile} uid={uid} />
+      <Scene f={frame} mobile={mobile} uid={uid} safeLeft={safeLeft} />
       {!reduced && t > DURATION + 0.5 && (
         <button
           type="button"

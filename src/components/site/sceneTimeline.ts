@@ -90,6 +90,7 @@ export interface Frame {
   speed: number;
   cam: { fx: number; fy: number; z: number };
   logo: number; // 0..1 reveal
+  logoGuard: number; // 0..1 how strictly the camera keeps the logo's spot in frame
   pulse: number; // 0..1 pulse expansion
   beam: number; // 0..1 energy reaching road
   roadLit: number; // 0..1
@@ -121,13 +122,14 @@ export function frameAt(t: number): Frame {
   const struggle = t < 2 ? 1 - seg(t, 1.4, 2) : 0;
 
   let z = 1.06;
+  // The camera starts pulling back as the logo rises, so the logo never clips the top edge
   if (t < 1.5) z = lerp(1.04, 1.12, t / 1.5);
-  else if (t < 2) z = lerp(1.12, 1.2, easeInOut(seg(t, 1.5, 2)));
-  else if (t < 3) z = lerp(1.2, 0.98, easeInOut(seg(t, 2, 3)));
+  else if (t < 1.8) z = lerp(1.12, 1.16, easeInOut(seg(t, 1.5, 1.8)));
+  else if (t < 2.8) z = lerp(1.16, 0.98, easeInOut(seg(t, 1.8, 2.8)));
   else if (t < 5.5) z = lerp(0.98, 1.0, seg(t, 3.5, 5.5));
   else z = lerp(1.0, 0.94, easeInOut(seg(t, 5.5, 7)));
 
-  const track = t < 2 ? 0.55 : lerp(0.55, 0.15, easeInOut(seg(t, 2, 3)));
+  const track = t < 1.8 ? 0.55 : lerp(0.55, 0.15, easeInOut(seg(t, 1.8, 2.8)));
   const fx = lerp(500, c.x, track);
   const fy = lerp(470, c.y - 60, track);
 
@@ -142,6 +144,7 @@ export function frameAt(t: number): Frame {
     speed,
     cam: { fx, fy, z },
     logo: easeOutCubic(seg(t, 1.8, 2.6)),
+    logoGuard: easeInOut(seg(t, 1.5, 2.4)),
     pulse: seg(t, 2.1, 3.2),
     beam: easeInOut(seg(t, 2.2, 2.8)),
     roadLit: easeInOut(seg(t, 2.4, 3.3)),

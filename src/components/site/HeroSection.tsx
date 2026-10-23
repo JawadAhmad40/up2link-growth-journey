@@ -1,19 +1,21 @@
+import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { CinematicCarScene } from "./CinematicCarScene";
 
 export function HeroSection({ onPrimary }: { onPrimary: () => void }) {
+  const copy = useRef<HTMLDivElement>(null);
   return (
     <section id="top" className="relative overflow-hidden bg-obsidian text-snow">
       <div className="relative lg:min-h-[max(100svh,760px)]">
         {/* Scene: right ~66% on desktop. Both scenes are server-rendered; CSS shows one. */}
         <div className="absolute inset-y-0 right-0 hidden w-[68%] lg:block">
-          <CinematicCarScene />
+          <CinematicCarScene avoid={copy} />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-obsidian to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-obsidian to-transparent" />
         </div>
 
         <div className="container-site relative z-10 flex flex-col pt-[calc(var(--nav-h)+2.5rem)] lg:min-h-[max(100svh,760px)] lg:justify-center lg:pt-[var(--nav-h)]">
-          <div className="max-w-xl lg:max-w-[34rem]">
+          <div ref={copy} className="max-w-xl lg:max-w-[34rem]">
             <p className="eyebrow text-lime">Built for B2B agency growth</p>
             <h1 className="type-hero mt-6">
               Stop chasing growth. <span className="text-lime">Build the engine.</span>
