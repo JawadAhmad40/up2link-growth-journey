@@ -7,8 +7,9 @@
 
 export const DURATION = 9;
 export const CREST_X = 760;
-export const VP = { x: 600, y: 392 };
 export const HORIZON_Y = 392;
+/** Where the road meets the horizon: ahead of the crest, so the road never doubles back. */
+export const VP = { x: 1060, y: HORIZON_Y };
 
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a));
@@ -28,13 +29,42 @@ export function roadSlope(x: number) {
 }
 export const LANE = 32;
 
-/** Beyond the crest the road bends away toward the vanishing point. */
+/**
+ * Beyond the crest the road bends away into the distance and meets the horizon at VP.
+ * It leaves the crest level, the way the climb arrives, so there is no kink at the top.
+ */
+const CREST = { x: CREST_X, y: roadY(CREST_X) - LANE };
+const BEND_A = { x: CREST_X + 120, y: CREST.y };
+const BEND_B = { x: VP.x - 70, y: CREST.y - 120 };
 export function distancePoint(d: number) {
-  const c = { x: CREST_X, y: roadY(CREST_X) - LANE };
-  const q = { x: 940, y: c.y - 70 };
-  const a = (1 - d) ** 2, b = 2 * (1 - d) * d, e = d * d;
-  return { x: a * c.x + b * q.x + e * VP.x, y: a * c.y + b * q.y + e * VP.y };
+  const a = (1 - d) ** 3, b = 3 * (1 - d) ** 2 * d, c = 3 * (1 - d) * d * d, e = d ** 3;
+  return {
+    x: a * CREST.x + b * BEND_A.x + c * BEND_B.x + e * VP.x,
+    y: a * CREST.y + b * BEND_A.y + c * BEND_B.y + e * VP.y,
+  };
 }
+/** Direction of travel along the distant road (not normalized). */
+export function distanceTangent(d: number) {
+  const a = 3 * (1 - d) ** 2, b = 6 * (1 - d) * d, c = 3 * d * d;
+  return {
+    x: a * (BEND_A.x - CREST.x) + b * (BEND_B.x - BEND_A.x) + c * (VP.x - BEND_B.x),
+    y: a * (BEND_A.y - CREST.y) + b * (BEND_B.y - BEND_A.y) + c * (VP.y - BEND_B.y),
+  };
+}
+/** Perspective scale of the distant road: 1 at the crest, 0 on the horizon. */
+export function depthScale(d: number) {
+  return (distancePoint(d).y - HORIZON_Y) / (CREST.y - HORIZON_Y);
+}
+const FAR_LENGTH = (() => {
+  let len = 0;
+  for (let i = 1; i <= 50; i++) {
+    const a = distancePoint((i - 1) / 50), b = distancePoint(i / 50);
+    len += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return len;
+})();
+/** How far into the distance the car gets by the end of the film (1 is the horizon). */
+const FAR_END = 0.6;
 
 function carX(t: number) {
   if (t < 2) return 140 + 60 * t - 8 * Math.sin(t * 5);
@@ -48,7 +78,8 @@ function carX(t: number) {
 }
 function distanceD(t: number) {
   const u = seg(t, 7.5, 9);
-  return 1 - (1 - u) ** 2;
+  // eased so the car leaves the crest at the speed it climbed with (~460 units/s)
+  return FAR_END * (1 - (1 - u) ** 3.2);
 }
 
 export interface Frame {
@@ -76,9 +107,10 @@ function carState(t: number) {
   }
   const d = distanceD(t);
   const p = distancePoint(d);
-  const p2 = distancePoint(Math.min(1, d + 0.01));
-  const ang = (Math.atan2(p2.y - p.y, Math.abs(p2.x - p.x) + 0.001) * 180) / Math.PI;
-  return { x: p.x, y: p.y, angle: ang * (1 - d), scale: lerp(1, 0.14, d ** 0.7), travel: CREST_X - 140 + d * 520 };
+  const dir = distanceTangent(d);
+  // Seen from behind as it recedes, so the car levels out instead of turning with the road
+  const angle = ((Math.atan2(dir.y, dir.x) * 180) / Math.PI) * (1 - d) ** 2;
+  return { x: p.x, y: p.y, angle, scale: Math.max(0.12, depthScale(d)), travel: CREST_X - 140 + d * FAR_LENGTH };
 }
 
 export function frameAt(t: number): Frame {

@@ -5,7 +5,9 @@ import {
   HORIZON_Y,
   LANE,
   VP,
+  depthScale,
   distancePoint,
+  distanceTangent,
   frameAt,
   roadY,
   staticFrame,
@@ -14,35 +16,113 @@ import {
 
 /* ---------- static geometry (world units, viewBox 1000x900) ---------- */
 
-function sampleRoad(offset: number, from = -160, to = CREST_X, step = 10) {
-  const pts: string[] = [];
-  for (let x = from; x <= to; x += step) pts.push(`${x.toFixed(1)},${(roadY(x) + offset).toFixed(1)}`);
+// A road sample with its perspective scale: 1 on the climb, shrinking to 0 on the horizon
+type Pt = { x: number; y: number; s: number };
+
+// Offsets are measured from the line the car rides on: +32 is the near edge, -42 the far edge
+function sampleRoad(off: number, from = -500, to = CREST_X, step = 10) {
+  const pts: Pt[] = [];
+  for (let x = from; x < to; x += step) pts.push({ x, y: roadY(x) - LANE + off, s: 1 });
   return pts;
 }
-function sampleDistance(offset: number, step = 0.04) {
-  const pts: string[] = [];
-  for (let d = 0; d <= 1.0001; d += step) {
+function sampleDistance(off: number, steps = 48) {
+  const pts: Pt[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const d = i / steps;
     const p = distancePoint(d);
-    const s = 1 - 0.86 * d ** 0.7;
-    pts.push(`${p.x.toFixed(1)},${(p.y + LANE + offset * s).toFixed(1)}`);
+    const dir = distanceTangent(d);
+    const s = depthScale(d);
+    // offset along the road's normal; at the crest that is straight down, like on the climb
+    const k = (off * s) / (Math.hypot(dir.x, dir.y) || 1);
+    pts.push({ x: p.x - dir.y * k, y: p.y + dir.x * k, s });
   }
   return pts;
 }
+const roadLine = (off: number) => [...sampleRoad(off), ...sampleDistance(off)];
+const crestPoint = (off: number) => sampleDistance(off, 1)[0]!;
 
-const nearEdge = [...sampleRoad(0), ...sampleDistance(0)];
-const farEdge = [...sampleRoad(-74), ...sampleDistance(-74)];
-const ROAD_SURFACE = `M${nearEdge.join(" L")} L${[...farEdge].reverse().join(" L")} Z`;
-const HILL_FACE = `M-200,1000 L${sampleRoad(0).join(" L")} L${CREST_X},1000 Z`;
-const NEAR_EDGE_PATH = `M${sampleRoad(0).join(" L")}`;
-const FAR_EDGE_PATH = `M${sampleRoad(-74).join(" L")} L${sampleDistance(-74).join(" L")}`;
-const LANE_PATH = `M${sampleRoad(-LANE - 4).join(" L")} L${sampleDistance(-LANE - 4).join(" L")}`;
+const xy = (p: { x: number; y: number }) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+const polyline = (pts: Pt[]) => `M${pts.map(xy).join(" L")}`;
+const dist = (a: Pt, b: Pt) => Math.hypot(b.x - a.x, b.y - a.y);
+const lengthOf = (pts: Pt[]) => pts.reduce((sum, p, i) => (i ? sum + dist(pts[i - 1]!, p) : 0), 0);
+
+/** Fillable outline of a line `width` wide that narrows with distance. */
+function ribbon(pts: Pt[], width: number) {
+  const left: string[] = [];
+  const right: string[] = [];
+  pts.forEach((p, i) => {
+    const a = pts[Math.max(0, i - 1)]!;
+    const b = pts[Math.min(pts.length - 1, i + 1)]!;
+    const k = ((width / 2) * p.s) / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
+    left.push(xy({ x: p.x - (b.y - a.y) * k, y: p.y + (b.x - a.x) * k }));
+    right.push(xy({ x: p.x + (b.y - a.y) * k, y: p.y - (b.x - a.x) * k }));
+  });
+  return `M${left.join(" L")} L${right.reverse().join(" L")} Z`;
+}
+
+/** Leading `frac` of a line by length, for draw-on reveals. */
+function revealer(pts: Pt[]) {
+  const at = [0];
+  for (let i = 1; i < pts.length; i++) at.push(at[i - 1]! + dist(pts[i - 1]!, pts[i]!));
+  const total = at[at.length - 1]!;
+  return (frac: number) => {
+    const target = total * frac;
+    const end = at.findIndex((l) => l >= target);
+    if (end <= 0) return pts.slice(0, 2);
+    const a = pts[end - 1]!;
+    const b = pts[end]!;
+    const k = (target - at[end - 1]!) / (at[end]! - at[end - 1]! || 1);
+    const tip = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, s: a.s + (b.s - a.s) * k };
+    return [...pts.slice(0, end), tip];
+  };
+}
+
+/** Lane dashes on the distant road: the climb's 26-on/22-off rhythm, shrinking with distance. */
+function perspectiveDashes(pts: Pt[], startAt: number, width: number) {
+  const dashes: Pt[][] = [];
+  let run: Pt[] = [];
+  let walked = startAt;
+  pts.forEach((p, i) => {
+    const q = pts[i - 1];
+    if (q) walked += dist(q, p) / Math.max(0.04, (p.s + q.s) / 2);
+    if (walked % 48 < 26 && p.s > 0.05) run.push(p);
+    else {
+      if (run.length > 1) dashes.push(run);
+      run = [];
+    }
+  });
+  if (run.length > 1) dashes.push(run);
+  return dashes.map((dash) => ribbon(dash, width)).join(" ");
+}
+
+const NEAR_LINE = roadLine(32);
+const FAR_LINE = roadLine(-42);
+const ROAD_SURFACE = `${polyline(NEAR_LINE)} L${[...FAR_LINE].reverse().map(xy).join(" L")} Z`;
+const NEAR_EDGE = ribbon(NEAR_LINE, 3);
+const NEAR_EDGE_GLOW = ribbon(NEAR_LINE, 14);
+const FAR_EDGE = ribbon(FAR_LINE, 1.5);
+const LANE_CLIMB = [...sampleRoad(-4), crestPoint(-4)];
+const LANE_PATH = polyline(LANE_CLIMB);
+const LANE_DISTANCE = perspectiveDashes(sampleDistance(-4, 240), lengthOf(LANE_CLIMB), 3);
+
+// Ground behind the road, and the hillside in front of it all the way to the horizon. Both share
+// one terrain gradient, so they meet without a seam.
+const GROUND = `M-1000,${HORIZON_Y} L2000,${HORIZON_Y} L2000,1800 L-1000,1800 Z`;
+const HILL_FACE = `M-500,1700 L${NEAR_LINE.map(xy).join(" L")} L2000,${HORIZON_Y} L2000,1800 L-500,1800 Z`;
+// The ranges' base runs below the horizon, so parallax never lifts them off the ground
+const MOUNTAINS = `M-700,${HORIZON_Y + 90} L-700,340 L-400,330 L-150,300 L60,350 L250,280 L430,345 L640,300 L860,350 L1060,290 L1300,340 L1700,320 L1700,${HORIZON_Y + 90} Z`;
+// Rolls in from the left and sinks behind the road before the crest
+const NEAR_HILLS =
+  "M-700,1700 L-700,520 C-450,450 -250,440 -60,462 C120,483 300,470 420,520 C500,553 560,620 620,760 L620,1700 Z";
 
 // Convergence point on the road ahead of the car
 const KX = 520;
 const K = { x: KX, y: roadY(KX) - LANE - 6 };
 const UPWORK_PATH = `M-60,760 C120,720 260,640 ${K.x},${K.y}`;
 const LINKEDIN_PATH = `M1080,250 C900,330 700,520 ${K.x},${K.y}`;
-const MERGED_PATH = `M${K.x},${K.y} L${sampleRoad(-LANE - 6, KX + 10).join(" L")} L${sampleDistance(-LANE - 6).join(" L")}`;
+const MERGED_LINE: Pt[] = [{ ...K, s: 1 }, ...sampleRoad(-6, KX + 10), ...sampleDistance(-6)];
+const MERGED_CLIMB = polyline([{ ...K, s: 1 }, ...sampleRoad(-6, KX + 10), crestPoint(-6)]);
+const revealMerged = revealer(MERGED_LINE);
 
 /* ---------- car ---------- */
 
@@ -118,6 +198,7 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
   const logoY = 260 + (1 - f.logo) * 150;
   const X2 = 490;
   const glow = 0.25 + 0.75 * f.roadLit + f.ambient * 0;
+  const merged = f.merged > 0 ? revealMerged(f.merged) : null;
 
   return (
     <svg
@@ -137,14 +218,16 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
           <stop offset="0" style={{ stopColor: "var(--lime)", stopOpacity: 0.55 }} />
           <stop offset="1" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} />
         </radialGradient>
-        <linearGradient id={`${uid}-hill`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`${uid}-terrain`} gradientUnits="userSpaceOnUse" x1="0" y1={HORIZON_Y} x2="0" y2="1000">
           <stop offset="0" style={{ stopColor: "var(--graphite)" }} />
-          <stop offset="0.25" style={{ stopColor: "var(--graphite-2)" }} />
+          <stop offset="0.4" style={{ stopColor: "var(--graphite-2)" }} />
           <stop offset="1" style={{ stopColor: "var(--obsidian)" }} />
         </linearGradient>
-        <linearGradient id={`${uid}-asphalt`} x1="0" y1="1" x2="0.4" y2="0">
+        {/* lightest at the crest, darkening down the climb and into the distance */}
+        <linearGradient id={`${uid}-asphalt`} gradientUnits="userSpaceOnUse" x1="-100" y1="900" x2={VP.x} y2={HORIZON_Y}>
           <stop offset="0" style={{ stopColor: "var(--graphite-2)" }} />
-          <stop offset="1" style={{ stopColor: "var(--graphite)" }} />
+          <stop offset="0.72" style={{ stopColor: "var(--graphite)" }} />
+          <stop offset="1" style={{ stopColor: "var(--graphite-2)" }} />
         </linearGradient>
         <linearGradient id={`${uid}-body`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" style={{ stopColor: "var(--ash)" }} />
@@ -183,12 +266,20 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
       <rect width="1000" height="900" fill={`url(#${uid}-sky)`} />
 
       <g transform={camT}>
+        {/* far mountains (parallax) */}
+        <g transform={par(0.5)}>
+          <path d={MOUNTAINS} fill="var(--graphite-2)" opacity={0.9} />
+        </g>
+
+        {/* ground plane out to the horizon */}
+        <path d={GROUND} fill={`url(#${uid}-terrain)`} />
+
         {/* horizon glow intensifies with brand */}
         <ellipse cx={VP.x} cy={HORIZON_Y} rx={520} ry={120} fill={`url(#${uid}-horizonGlow)`} opacity={0.12 + 0.7 * f.roadLit + 0.1 * Math.sin(f.t * 1.2) * f.ambient} />
 
-        {/* far mountains (parallax) */}
-        <g transform={par(0.5)}>
-          <path d={`M-400,${HORIZON_Y} L-150,300 L60,350 L250,280 L430,345 L640,300 L860,350 L1060,290 L1400,${HORIZON_Y} Z`} fill="var(--graphite-2)" opacity={0.9} />
+        {/* near hills (parallax) */}
+        <g transform={par(0.2)}>
+          <path d={NEAR_HILLS} fill="var(--graphite-2)" opacity={0.7} />
         </g>
 
         {/* logo rises from the horizon */}
@@ -210,28 +301,24 @@ function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
         {/* energy beam from logo to road */}
         <path d={`M${X2},250 C${X2 + 10},380 ${K.x - 20},${K.y - 140} ${K.x},${K.y}`} fill="none" stroke="var(--lime)" strokeWidth={3} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.beam} opacity={f.beam * (1 - f.merged * 0.8)} />
 
-        {/* near hills (parallax) */}
-        <g transform={par(0.2)}>
-          <path d={`M-400,520 C-100,430 100,480 260,470 L260,1000 L-400,1000 Z`} fill="var(--graphite-2)" opacity={0.7} />
-        </g>
-
-        {/* road + hill */}
-        <path d={HILL_FACE} fill={`url(#${uid}-hill)`} />
+        {/* road + hill; the road narrows to the horizon */}
+        <path d={HILL_FACE} fill={`url(#${uid}-terrain)`} />
         <path d={ROAD_SURFACE} fill={`url(#${uid}-asphalt)`} />
-        <path d={NEAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={3} opacity={0.15 + 0.85 * glow} />
-        <path d={FAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={1.5} opacity={0.08 + 0.5 * f.roadLit} />
+        <path d={NEAR_EDGE} fill="var(--lime)" opacity={0.15 + 0.85 * glow} />
+        <path d={FAR_EDGE} fill="var(--lime)" opacity={0.08 + 0.5 * f.roadLit} />
         <path d={LANE_PATH} fill="none" stroke="var(--snow)" strokeWidth={3} strokeDasharray="26 22" opacity={0.35 + 0.2 * f.roadLit} />
+        <path d={LANE_DISTANCE} fill="var(--snow)" opacity={0.35 + 0.2 * f.roadLit} />
         {/* road lit by the brand */}
-        <path d={NEAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={14} filter={`url(#${uid}-soft)`} opacity={0.6 * f.roadLit} />
+        <path d={NEAR_EDGE_GLOW} fill="var(--lime)" filter={`url(#${uid}-soft)`} opacity={0.6 * f.roadLit} />
 
         {/* channel streams */}
         <Stream d={UPWORK_PATH} progress={f.upwork} label="UPWORK" id="s-up" uid={uid} />
         <Stream d={LINKEDIN_PATH} progress={f.linkedin} label="LINKEDIN" id="s-li" uid={uid} />
-        {f.merged > 0 && (
+        {merged && (
           <>
-            <path d={MERGED_PATH} fill="none" stroke="var(--lime)" strokeWidth={18} filter={`url(#${uid}-soft)`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.merged} opacity={0.55} />
-            <path d={MERGED_PATH} fill="none" stroke="var(--lime)" strokeWidth={4} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.merged} />
-            <path d={MERGED_PATH} fill="none" stroke="var(--obsidian)" strokeWidth={2} strokeDasharray="6 30" strokeDashoffset={-f.t * 120} opacity={f.merged * 0.7} />
+            <path d={ribbon(merged, 18)} fill="var(--lime)" filter={`url(#${uid}-soft)`} opacity={0.55} />
+            <path d={ribbon(merged, 4)} fill="var(--lime)" />
+            <path d={MERGED_CLIMB} fill="none" stroke="var(--obsidian)" strokeWidth={2} strokeDasharray="6 30" strokeDashoffset={-f.t * 120} opacity={f.merged * 0.7} />
           </>
         )}
         {f.merged > 0.2 && (
