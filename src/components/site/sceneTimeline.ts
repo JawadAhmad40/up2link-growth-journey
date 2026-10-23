@@ -1,11 +1,11 @@
 /**
  * Pure, centralized timeline for the hero film. Every visual in the scene reads
  * from `frameAt(t)` so phases stay in sync.
- *   0–2s  struggle uphill   | 2–3s momentum stops | 3–4.5s brand intervention
- *   4.5–5.5s channels merge | 5.5–7.5s acceleration | 7.5–9s horizon payoff
+ *   0–1.5s struggle uphill | 1.5–2s momentum stops | 1.8–3s brand intervention
+ *   2.6–4s channels merge   | 3.5–5.5s acceleration | 5.5–7s horizon payoff
  */
 
-export const DURATION = 9;
+export const DURATION = 7;
 export const CREST_X = 760;
 export const HORIZON_Y = 392;
 /** Where the road meets the horizon: ahead of the crest, so the road never doubles back. */
@@ -66,18 +66,19 @@ const FAR_LENGTH = (() => {
 /** How far into the distance the car gets by the end of the film (1 is the horizon). */
 const FAR_END = 0.6;
 
+const crawl = (t: number) => 140 + 70 * t - 8 * Math.sin(t * 6);
 function carX(t: number) {
-  if (t < 2) return 140 + 60 * t - 8 * Math.sin(t * 5);
-  if (t < 3) return lerp(140 + 120 - 8 * Math.sin(10), 278, easeOutCubic(seg(t, 2, 3)));
-  if (t < 5.5) return lerp(278, 300, easeInOut(seg(t, 3, 5.5)));
-  if (t < 7.5) {
-    const u = seg(t, 5.5, 7.5);
-    return 300 + (CREST_X - 300) * u * u;
+  if (t < 1.5) return crawl(t);
+  if (t < 2) return lerp(crawl(1.5), 255, easeOutCubic(seg(t, 1.5, 2)));
+  if (t < 3.5) return lerp(255, 290, easeInOut(seg(t, 2, 3.5)));
+  if (t < 5.5) {
+    const u = seg(t, 3.5, 5.5);
+    return 290 + (CREST_X - 290) * u * u;
   }
   return CREST_X;
 }
 function distanceD(t: number) {
-  const u = seg(t, 7.5, 9);
+  const u = seg(t, 5.5, 7);
   // eased so the car leaves the crest at the speed it climbed with (~460 units/s)
   return FAR_END * (1 - (1 - u) ** 3.2);
 }
@@ -102,14 +103,14 @@ export interface Frame {
 
 function carState(t: number) {
   const x = carX(t);
-  if (t < 7.5) {
+  if (t < 5.5) {
     return { x, y: roadY(x) - LANE, angle: (Math.atan(roadSlope(x)) * 180) / Math.PI, scale: 1, travel: x - 140 };
   }
   const d = distanceD(t);
   const p = distancePoint(d);
   const dir = distanceTangent(d);
-  // Seen from behind as it recedes, so the car levels out instead of turning with the road
-  const angle = ((Math.atan2(dir.y, dir.x) * 180) / Math.PI) * (1 - d) ** 2;
+  // Follow the road's direction, as on the climb
+  const angle = (Math.atan2(dir.y, dir.x) * 180) / Math.PI;
   return { x: p.x, y: p.y, angle, scale: Math.max(0.12, depthScale(d)), travel: CREST_X - 140 + d * FAR_LENGTH };
 }
 
@@ -117,16 +118,16 @@ export function frameAt(t: number): Frame {
   const c = carState(t);
   const c2 = carState(Math.max(0, t - 1 / 60));
   const speed = Math.max(0, (c.travel - c2.travel) * 60);
-  const struggle = t < 3 ? 1 - seg(t, 2.6, 3.2) : 0;
+  const struggle = t < 2 ? 1 - seg(t, 1.4, 2) : 0;
 
   let z = 1.06;
-  if (t < 2) z = lerp(1.04, 1.12, t / 2);
-  else if (t < 3) z = lerp(1.12, 1.2, easeInOut(seg(t, 2, 3)));
-  else if (t < 4.5) z = lerp(1.2, 0.98, easeInOut(seg(t, 3, 4.5)));
-  else if (t < 7.5) z = lerp(0.98, 1.0, seg(t, 5.5, 7.5));
-  else z = lerp(1.0, 0.94, easeInOut(seg(t, 7.5, 9)));
+  if (t < 1.5) z = lerp(1.04, 1.12, t / 1.5);
+  else if (t < 2) z = lerp(1.12, 1.2, easeInOut(seg(t, 1.5, 2)));
+  else if (t < 3) z = lerp(1.2, 0.98, easeInOut(seg(t, 2, 3)));
+  else if (t < 5.5) z = lerp(0.98, 1.0, seg(t, 3.5, 5.5));
+  else z = lerp(1.0, 0.94, easeInOut(seg(t, 5.5, 7)));
 
-  const track = t < 3 ? 0.55 : lerp(0.55, 0.15, easeInOut(seg(t, 3, 4.5)));
+  const track = t < 2 ? 0.55 : lerp(0.55, 0.15, easeInOut(seg(t, 2, 3)));
   const fx = lerp(500, c.x, track);
   const fy = lerp(470, c.y - 60, track);
 
@@ -140,22 +141,22 @@ export function frameAt(t: number): Frame {
     travel: c.travel,
     speed,
     cam: { fx, fy, z },
-    logo: easeOutCubic(seg(t, 3, 4.1)),
-    pulse: seg(t, 3.6, 5),
-    beam: easeInOut(seg(t, 3.8, 4.6)),
-    roadLit: easeInOut(seg(t, 4.1, 5.4)),
-    upwork: easeInOut(seg(t, 4.5, 5.3)),
-    linkedin: easeInOut(seg(t, 4.65, 5.45)),
-    merged: easeInOut(seg(t, 5.3, 6.6)),
-    trail: seg(t, 5.7, 6.6) * (1 - 0.6 * seg(t, 8.4, 9.2)),
+    logo: easeOutCubic(seg(t, 1.8, 2.6)),
+    pulse: seg(t, 2.1, 3.2),
+    beam: easeInOut(seg(t, 2.2, 2.8)),
+    roadLit: easeInOut(seg(t, 2.4, 3.3)),
+    upwork: easeInOut(seg(t, 2.6, 3.2)),
+    linkedin: easeInOut(seg(t, 2.7, 3.3)),
+    merged: easeInOut(seg(t, 3.1, 4)),
+    trail: seg(t, 3.7, 4.4) * (1 - 0.6 * seg(t, 6.4, 7.2)),
     struggle,
-    ambient: seg(t, 9, 10),
+    ambient: seg(t, DURATION, DURATION + 1),
   };
 }
 
 /** Composed still for reduced-motion users: car on the road, brand lit, channels merged. */
 export function staticFrame(): Frame {
-  const f = frameAt(9.2);
+  const f = frameAt(DURATION + 0.2);
   const x = 470;
   return {
     ...f,

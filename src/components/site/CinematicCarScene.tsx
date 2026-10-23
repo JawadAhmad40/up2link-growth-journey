@@ -126,16 +126,18 @@ const revealMerged = revealer(MERGED_LINE);
 
 /* ---------- car ---------- */
 
+// Multi-spoke rim: ten slim spokes over a dark wheel face
 function Wheel({ cx, rot, uid }: { cx: number; rot: number; uid: string }) {
   return (
-    <g transform={`rotate(${rot % 360} ${cx} -38)`}>
-      <circle cx={cx} cy={-38} r={38} fill="var(--obsidian)" />
-      <circle cx={cx} cy={-38} r={36} fill="none" stroke="var(--graphite)" strokeWidth={3} />
-      <circle cx={cx} cy={-38} r={25} fill={`url(#${uid}-rim)`} />
-      {[0, 72, 144, 216, 288].map((a) => (
-        <rect key={a} x={cx - 2.5} y={-62} width={5} height={24} rx={2} fill="var(--ash)" opacity={0.9} transform={`rotate(${a} ${cx} -38)`} />
+    <g transform={`rotate(${rot % 360} ${cx} -34)`}>
+      <circle cx={cx} cy={-34} r={34} fill="var(--obsidian)" />
+      <circle cx={cx} cy={-34} r={32} fill="none" stroke="var(--graphite)" strokeWidth={3} />
+      <circle cx={cx} cy={-34} r={23} fill="var(--graphite-2)" />
+      {Array.from({ length: 10 }, (_, i) => (
+        <rect key={i} x={cx - 1.8} y={-56} width={3.6} height={18} rx={1.8} fill={`url(#${uid}-rim)`} transform={`rotate(${i * 36} ${cx} -34)`} />
       ))}
-      <circle cx={cx} cy={-38} r={6} fill="var(--lime)" opacity={0.85} />
+      <circle cx={cx} cy={-34} r={23} fill="none" stroke="var(--ash)" strokeOpacity={0.55} strokeWidth={1.5} />
+      <circle cx={cx} cy={-34} r={4.5} fill="var(--lime)" opacity={0.85} />
     </g>
   );
 }
@@ -147,44 +149,48 @@ function Car({ f, uid }: { f: Frame; uid: string }) {
   return (
     <g transform={`translate(${car.x} ${car.y + car.bob}) rotate(${car.angle}) scale(${0.78 * car.scale}) translate(-200 0)`}>
       {/* contact shadow */}
-      <ellipse cx={200} cy={2} rx={215} ry={14} fill="var(--obsidian)" opacity={0.75} />
+      <ellipse cx={206} cy={2} rx={212} ry={13} fill="var(--obsidian)" opacity={0.75} />
       {/* light trails stretching backward */}
       {trailLen > 4 && (
         <g opacity={Math.min(1, 0.35 + f.trail)}>
-          {[-30, -52, -78].map((y, i) => (
+          {[-26, -38, -48].map((y, i) => (
             <rect key={y} x={10 - trailLen * (1 - i * 0.18)} y={y} width={trailLen * (1 - i * 0.18)} height={i === 0 ? 4 : 2} fill={`url(#${uid}-trail)`} />
           ))}
         </g>
       )}
       {/* headlight cone */}
-      <path d="M392,-54 L760,-130 L760,40 Z" fill={`url(#${uid}-beamCone)`} opacity={0.35 + 0.65 * f.roadLit} />
+      <path d="M398,-60 L760,-136 L760,34 Z" fill={`url(#${uid}-beamCone)`} opacity={0.35 + 0.65 * f.roadLit} />
       <g filter={blur > 0.6 ? `url(#${uid}-mblur)` : undefined}>
-        {/* body */}
+        {/* body: long hood, cabin set back, short tail with an integrated lip */}
         <path
-          d="M8,-30 C4,-52 8,-66 24,-72 L78,-82 C118,-88 148,-122 196,-130 C238,-136 276,-129 304,-108 C322,-96 344,-88 374,-82 C394,-78 402,-62 400,-44 L398,-30 C398,-20 392,-16 384,-16 L360,-16 A46,46 0 0 0 280,-16 L120,-16 A46,46 0 0 0 40,-16 L20,-16 C12,-16 8,-21 8,-30 Z"
+          d="M18,-16 C12,-18 9,-26 9,-34 C9,-42 10,-48 14,-53 L26,-58 C50,-62 74,-66 98,-70 C120,-80 146,-104 172,-116 C190,-123 214,-125 236,-122 C252,-118 266,-104 282,-86 C310,-79 350,-74 380,-68 C394,-65 402,-58 404,-50 C406,-40 404,-28 398,-21 L392,-18 L358,-18 A39,39 0 1 0 286,-18 L132,-18 A39,39 0 1 0 60,-18 L24,-17 Z"
           fill={`url(#${uid}-body)`}
         />
+        {/* side glass with a straight beltline, split by a slim B-pillar */}
+        <path d="M278,-87 C266,-99 254,-110 238,-116 C220,-120 198,-120 178,-114 C162,-108 150,-98 140,-88 Z" fill={`url(#${uid}-glass)`} />
+        <path d="M197,-118 L201,-88" stroke="var(--obsidian)" strokeWidth={4} />
+        {/* door cut, flush handle and mirror */}
+        <path d="M282,-85 C284,-62 284,-40 280,-19 M201,-88 C200,-64 199,-40 197,-19" fill="none" stroke="var(--obsidian)" strokeWidth={1.5} opacity={0.6} />
+        <path d="M214,-76 L228,-76" stroke="var(--ash)" strokeWidth={2} strokeLinecap="round" opacity={0.6} />
+        <path d="M282,-87 C276,-94 266,-95 260,-91 C260,-87 264,-84 270,-83 Z" fill="var(--graphite)" />
+        {/* glint along the roofline, and wheel-arch lips */}
+        <path d="M282,-86 C266,-104 252,-118 236,-122 C214,-125 190,-123 172,-116 C146,-104 120,-80 98,-70" fill="none" stroke="var(--snow)" strokeOpacity={0.22} strokeWidth={2} />
+        <path d="M60,-18 A39,39 0 1 1 132,-18 M286,-18 A39,39 0 1 1 358,-18" fill="none" stroke="var(--ash)" strokeOpacity={0.3} strokeWidth={2} />
+        {/* crisp shoulder line from the headlight back to the tail */}
+        <path d="M394,-60 C330,-68 250,-72 160,-73 C110,-73 70,-68 30,-60" fill="none" stroke="var(--snow)" strokeOpacity={0.3} strokeWidth={2.5} />
+        <path d="M62,-42 C150,-48 270,-48 396,-40" fill="none" stroke="var(--snow)" strokeOpacity={0.1} strokeWidth={1.5} />
         {/* lower sill shadow */}
-        <path d="M120,-16 L280,-16 L276,-28 L124,-28 Z" fill="var(--obsidian)" opacity={0.7} />
-        {/* glasshouse */}
-        <path d="M150,-108 C176,-124 228,-127 264,-113 L290,-96 C250,-92 192,-92 136,-95 Z" fill={`url(#${uid}-glass)`} />
-        <path d="M212,-123 L216,-93" stroke="var(--obsidian)" strokeWidth={5} />
-        {/* shoulder highlight */}
-        <path d="M30,-68 C110,-80 250,-84 392,-66" fill="none" stroke="var(--snow)" strokeOpacity={0.35} strokeWidth={2.5} />
-        <path d="M60,-50 C160,-56 280,-56 384,-48" fill="none" stroke="var(--snow)" strokeOpacity={0.1} strokeWidth={1.5} />
-        {/* side intake */}
-        <path d="M108,-62 L140,-60 L132,-44 L104,-46 Z" fill="var(--obsidian)" opacity={0.8} />
-        {/* rear wing + tail light */}
-        <path d="M14,-74 L58,-80 L56,-86 L10,-80 Z" fill="var(--graphite)" />
-        <rect x={8} y={-64} width={14} height={8} rx={2} fill="var(--destructive)" opacity={0.95} />
-        <rect x={0} y={-66} width={22} height={12} rx={4} fill="var(--destructive)" opacity={0.25 + 0.3 * f.struggle} />
-        {/* headlight */}
-        <path d="M380,-66 L398,-60 L396,-52 L376,-56 Z" fill="var(--lime)" />
+        <path d="M133,-18 L285,-18 L282,-25 L136,-25 Z" fill="var(--obsidian)" opacity={0.6} />
+        {/* slim LED tail light */}
+        <path d="M10,-47 L32,-55 L32,-52 L11,-44 Z" fill="var(--destructive)" opacity={0.95} />
+        <rect x={4} y={-59} width={32} height={13} rx={5} fill="var(--destructive)" opacity={0.25 + 0.3 * f.struggle} />
+        {/* slim LED headlight */}
+        <path d="M368,-70 L398,-61 L397,-57 L366,-66 Z" fill="var(--lime)" />
         {/* lime accent line activated by brand */}
-        <path d="M40,-38 L372,-40" stroke="var(--lime)" strokeWidth={2.5} opacity={0.15 + 0.85 * f.roadLit} />
+        <path d="M136,-29 L282,-29" stroke="var(--lime)" strokeWidth={2.5} opacity={0.15 + 0.85 * f.roadLit} />
       </g>
-      <Wheel cx={80} rot={car.wheel} uid={uid} />
-      <Wheel cx={320} rot={car.wheel} uid={uid} />
+      <Wheel cx={96} rot={car.wheel} uid={uid} />
+      <Wheel cx={322} rot={car.wheel} uid={uid} />
     </g>
   );
 }
