@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CREST_X,
   DURATION,
@@ -46,12 +46,12 @@ const MERGED_PATH = `M${K.x},${K.y} L${sampleRoad(-LANE - 6, KX + 10).join(" L")
 
 /* ---------- car ---------- */
 
-function Wheel({ cx, rot }: { cx: number; rot: number }) {
+function Wheel({ cx, rot, uid }: { cx: number; rot: number; uid: string }) {
   return (
     <g transform={`rotate(${rot % 360} ${cx} -38)`}>
       <circle cx={cx} cy={-38} r={38} fill="var(--obsidian)" />
       <circle cx={cx} cy={-38} r={36} fill="none" stroke="var(--graphite)" strokeWidth={3} />
-      <circle cx={cx} cy={-38} r={25} fill="url(#rim)" />
+      <circle cx={cx} cy={-38} r={25} fill={`url(#${uid}-rim)`} />
       {[0, 72, 144, 216, 288].map((a) => (
         <rect key={a} x={cx - 2.5} y={-62} width={5} height={24} rx={2} fill="var(--ash)" opacity={0.9} transform={`rotate(${a} ${cx} -38)`} />
       ))}
@@ -60,7 +60,7 @@ function Wheel({ cx, rot }: { cx: number; rot: number }) {
   );
 }
 
-function Car({ f }: { f: Frame }) {
+function Car({ f, uid }: { f: Frame; uid: string }) {
   const { car } = f;
   const blur = Math.min(10, f.speed / 90);
   const trailLen = Math.max(f.speed * 0.32, f.trail * 140);
@@ -72,22 +72,22 @@ function Car({ f }: { f: Frame }) {
       {trailLen > 4 && (
         <g opacity={Math.min(1, 0.35 + f.trail)}>
           {[-30, -52, -78].map((y, i) => (
-            <rect key={y} x={10 - trailLen * (1 - i * 0.18)} y={y} width={trailLen * (1 - i * 0.18)} height={i === 0 ? 4 : 2} fill="url(#trail)" />
+            <rect key={y} x={10 - trailLen * (1 - i * 0.18)} y={y} width={trailLen * (1 - i * 0.18)} height={i === 0 ? 4 : 2} fill={`url(#${uid}-trail)`} />
           ))}
         </g>
       )}
       {/* headlight cone */}
-      <path d="M392,-54 L760,-130 L760,40 Z" fill="url(#beamCone)" opacity={0.35 + 0.65 * f.roadLit} />
-      <g filter={blur > 0.6 ? "url(#mblur)" : undefined}>
+      <path d="M392,-54 L760,-130 L760,40 Z" fill={`url(#${uid}-beamCone)`} opacity={0.35 + 0.65 * f.roadLit} />
+      <g filter={blur > 0.6 ? `url(#${uid}-mblur)` : undefined}>
         {/* body */}
         <path
           d="M8,-30 C4,-52 8,-66 24,-72 L78,-82 C118,-88 148,-122 196,-130 C238,-136 276,-129 304,-108 C322,-96 344,-88 374,-82 C394,-78 402,-62 400,-44 L398,-30 C398,-20 392,-16 384,-16 L360,-16 A46,46 0 0 0 280,-16 L120,-16 A46,46 0 0 0 40,-16 L20,-16 C12,-16 8,-21 8,-30 Z"
-          fill="url(#body)"
+          fill={`url(#${uid}-body)`}
         />
         {/* lower sill shadow */}
         <path d="M120,-16 L280,-16 L276,-28 L124,-28 Z" fill="var(--obsidian)" opacity={0.7} />
         {/* glasshouse */}
-        <path d="M150,-108 C176,-124 228,-127 264,-113 L290,-96 C250,-92 192,-92 136,-95 Z" fill="url(#glass)" />
+        <path d="M150,-108 C176,-124 228,-127 264,-113 L290,-96 C250,-92 192,-92 136,-95 Z" fill={`url(#${uid}-glass)`} />
         <path d="M212,-123 L216,-93" stroke="var(--obsidian)" strokeWidth={5} />
         {/* shoulder highlight */}
         <path d="M30,-68 C110,-80 250,-84 392,-66" fill="none" stroke="var(--snow)" strokeOpacity={0.35} strokeWidth={2.5} />
@@ -103,15 +103,15 @@ function Car({ f }: { f: Frame }) {
         {/* lime accent line activated by brand */}
         <path d="M40,-38 L372,-40" stroke="var(--lime)" strokeWidth={2.5} opacity={0.15 + 0.85 * f.roadLit} />
       </g>
-      <Wheel cx={80} rot={car.wheel} />
-      <Wheel cx={320} rot={car.wheel} />
+      <Wheel cx={80} rot={car.wheel} uid={uid} />
+      <Wheel cx={320} rot={car.wheel} uid={uid} />
     </g>
   );
 }
 
 /* ---------- scene ---------- */
 
-function Scene({ f, mobile }: { f: Frame; mobile: boolean }) {
+function Scene({ f, mobile, uid }: { f: Frame; mobile: boolean; uid: string }) {
   const { fx, fy, z } = f.cam;
   const camT = `translate(500 450) scale(${z}) translate(${-fx} ${-fy})`;
   const par = (k: number) => `translate(${(500 - fx) * k} ${(470 - fy) * k * 0.5})`;
@@ -128,63 +128,63 @@ function Scene({ f, mobile }: { f: Frame; mobile: boolean }) {
       aria-label="A dark sports car struggles up a steep road until the up2linkd logo lights the scene; Upwork and LinkedIn streams merge into one path and the car accelerates toward the horizon."
     >
       <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`${uid}-sky`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" style={{ stopColor: "var(--obsidian)" }} />
           <stop offset="0.75" style={{ stopColor: "var(--graphite-2)" }} />
           <stop offset="1" style={{ stopColor: "var(--graphite)" }} />
         </linearGradient>
-        <radialGradient id="horizonGlow" cx="0.5" cy="0.5" r="0.5">
+        <radialGradient id={`${uid}-horizonGlow`} cx="0.5" cy="0.5" r="0.5">
           <stop offset="0" style={{ stopColor: "var(--lime)", stopOpacity: 0.55 }} />
           <stop offset="1" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} />
         </radialGradient>
-        <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`${uid}-hill`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" style={{ stopColor: "var(--graphite)" }} />
           <stop offset="0.25" style={{ stopColor: "var(--graphite-2)" }} />
           <stop offset="1" style={{ stopColor: "var(--obsidian)" }} />
         </linearGradient>
-        <linearGradient id="asphalt" x1="0" y1="1" x2="0.4" y2="0">
+        <linearGradient id={`${uid}-asphalt`} x1="0" y1="1" x2="0.4" y2="0">
           <stop offset="0" style={{ stopColor: "var(--graphite-2)" }} />
           <stop offset="1" style={{ stopColor: "var(--graphite)" }} />
         </linearGradient>
-        <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`${uid}-body`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" style={{ stopColor: "var(--ash)" }} />
           <stop offset="0.28" style={{ stopColor: "var(--graphite)" }} />
           <stop offset="0.7" style={{ stopColor: "var(--graphite-2)" }} />
           <stop offset="1" style={{ stopColor: "var(--obsidian)" }} />
         </linearGradient>
-        <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`${uid}-glass`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" style={{ stopColor: "var(--ash)", stopOpacity: 0.55 }} />
           <stop offset="0.5" style={{ stopColor: "var(--obsidian)" }} />
           <stop offset="1" style={{ stopColor: "var(--graphite)" }} />
         </linearGradient>
-        <radialGradient id="rim" cx="0.4" cy="0.35" r="0.7">
+        <radialGradient id={`${uid}-rim`} cx="0.4" cy="0.35" r="0.7">
           <stop offset="0" style={{ stopColor: "var(--ash)" }} />
           <stop offset="1" style={{ stopColor: "var(--graphite-2)" }} />
         </radialGradient>
-        <linearGradient id="trail" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id={`${uid}-trail`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} />
           <stop offset="1" style={{ stopColor: "var(--lime)", stopOpacity: 0.9 }} />
         </linearGradient>
-        <linearGradient id="beamCone" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id={`${uid}-beamCone`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" style={{ stopColor: "var(--lime)", stopOpacity: 0.35 }} />
           <stop offset="1" style={{ stopColor: "var(--lime)", stopOpacity: 0 }} />
         </linearGradient>
-        <filter id="mblur" x="-20%" y="-20%" width="140%" height="140%">
+        <filter id={`${uid}-mblur`} x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation={`${Math.min(10, f.speed / 90)} 0`} />
         </filter>
-        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+        <filter id={`${uid}-soft`} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="8" />
         </filter>
-        <clipPath id="aboveHorizon">
+        <clipPath id={`${uid}-aboveHorizon`}>
           <rect x="-400" y="-400" width="1800" height={HORIZON_Y + 400} />
         </clipPath>
       </defs>
 
-      <rect width="1000" height="900" fill="url(#sky)" />
+      <rect width="1000" height="900" fill={`url(#${uid}-sky)`} />
 
       <g transform={camT}>
         {/* horizon glow intensifies with brand */}
-        <ellipse cx={VP.x} cy={HORIZON_Y} rx={520} ry={120} fill="url(#horizonGlow)" opacity={0.12 + 0.7 * f.roadLit + 0.1 * Math.sin(f.t * 1.2) * f.ambient} />
+        <ellipse cx={VP.x} cy={HORIZON_Y} rx={520} ry={120} fill={`url(#${uid}-horizonGlow)`} opacity={0.12 + 0.7 * f.roadLit + 0.1 * Math.sin(f.t * 1.2) * f.ambient} />
 
         {/* far mountains (parallax) */}
         <g transform={par(0.5)}>
@@ -192,7 +192,7 @@ function Scene({ f, mobile }: { f: Frame; mobile: boolean }) {
         </g>
 
         {/* logo rises from the horizon */}
-        <g clipPath="url(#aboveHorizon)" opacity={f.logo}>
+        <g clipPath={`url(#${uid}-aboveHorizon)`} opacity={f.logo}>
           <g transform={`translate(0 ${logoY})`} fontFamily="Space Grotesk, sans-serif" fontWeight={700} fontSize={96} letterSpacing={-5}>
             <text x={X2 - 30} y={0} textAnchor="end" fill="var(--snow)">up</text>
             <text x={X2} y={0} textAnchor="middle" fill="var(--lime)" transform="skewX(-12)">2</text>
@@ -216,20 +216,20 @@ function Scene({ f, mobile }: { f: Frame; mobile: boolean }) {
         </g>
 
         {/* road + hill */}
-        <path d={HILL_FACE} fill="url(#hill)" />
-        <path d={ROAD_SURFACE} fill="url(#asphalt)" />
+        <path d={HILL_FACE} fill={`url(#${uid}-hill)`} />
+        <path d={ROAD_SURFACE} fill={`url(#${uid}-asphalt)`} />
         <path d={NEAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={3} opacity={0.15 + 0.85 * glow} />
         <path d={FAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={1.5} opacity={0.08 + 0.5 * f.roadLit} />
         <path d={LANE_PATH} fill="none" stroke="var(--snow)" strokeWidth={3} strokeDasharray="26 22" opacity={0.35 + 0.2 * f.roadLit} />
         {/* road lit by the brand */}
-        <path d={NEAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={14} filter="url(#soft)" opacity={0.6 * f.roadLit} />
+        <path d={NEAR_EDGE_PATH} fill="none" stroke="var(--lime)" strokeWidth={14} filter={`url(#${uid}-soft)`} opacity={0.6 * f.roadLit} />
 
         {/* channel streams */}
-        <Stream d={UPWORK_PATH} progress={f.upwork} label="UPWORK" id="s-up" />
-        <Stream d={LINKEDIN_PATH} progress={f.linkedin} label="LINKEDIN" id="s-li" />
+        <Stream d={UPWORK_PATH} progress={f.upwork} label="UPWORK" id="s-up" uid={uid} />
+        <Stream d={LINKEDIN_PATH} progress={f.linkedin} label="LINKEDIN" id="s-li" uid={uid} />
         {f.merged > 0 && (
           <>
-            <path d={MERGED_PATH} fill="none" stroke="var(--lime)" strokeWidth={18} filter="url(#soft)" pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.merged} opacity={0.55} />
+            <path d={MERGED_PATH} fill="none" stroke="var(--lime)" strokeWidth={18} filter={`url(#${uid}-soft)`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.merged} opacity={0.55} />
             <path d={MERGED_PATH} fill="none" stroke="var(--lime)" strokeWidth={4} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - f.merged} />
             <path d={MERGED_PATH} fill="none" stroke="var(--obsidian)" strokeWidth={2} strokeDasharray="6 30" strokeDashoffset={-f.t * 120} opacity={f.merged * 0.7} />
           </>
@@ -238,23 +238,24 @@ function Scene({ f, mobile }: { f: Frame; mobile: boolean }) {
           <circle cx={K.x} cy={K.y} r={9 + 3 * Math.sin(f.t * 4)} fill="var(--lime)" opacity={f.merged} />
         )}
 
-        <Car f={f} />
+        <Car f={f} uid={uid} />
       </g>
 
       {/* vignette */}
-      <rect width="1000" height="900" fill="url(#sky)" opacity={0} />
+      <rect width="1000" height="900" fill={`url(#${uid}-sky)`} opacity={0} />
     </svg>
   );
 }
 
-function Stream({ d, progress, label, id }: { d: string; progress: number; label: string; id: string }) {
+function Stream({ d, progress, label, id, uid }: { d: string; progress: number; label: string; id: string; uid: string }) {
   if (progress <= 0) return null;
+  const pathId = `${uid}-${id}`;
   return (
     <g>
-      <path id={id} d={d} fill="none" stroke="var(--lime)" strokeWidth={16} filter="url(#soft)" pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - progress} opacity={0.5} />
+      <path id={pathId} d={d} fill="none" stroke="var(--lime)" strokeWidth={16} filter={`url(#${uid}-soft)`} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - progress} opacity={0.5} />
       <path d={d} fill="none" stroke="var(--lime)" strokeWidth={3.5} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - progress} />
       <text fontFamily="Space Grotesk, sans-serif" fontSize={20} fontWeight={600} letterSpacing={5} fill="var(--lime)" opacity={Math.min(1, progress * 1.6)} dy={-14}>
-        <textPath href={`#${id}`} startOffset="12%">{label}</textPath>
+        <textPath href={`#${pathId}`} startOffset="12%">{label}</textPath>
       </text>
     </g>
   );
@@ -267,6 +268,9 @@ export function CinematicCarScene({ mobile = false }: { mobile?: boolean }) {
   const [reduced, setReduced] = useState(false);
   const [run, setRun] = useState(0);
   const raf = useRef<number | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  // SVG ids are document-wide; prefix them so the desktop and mobile scenes don't collide
+  const uid = useId();
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -277,30 +281,48 @@ export function CinematicCarScene({ mobile = false }: { mobile?: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (reduced) return;
-    let start: number | null = null;
-    let last = 0;
+    const node = root.current;
+    if (reduced || !node) return;
+    // The film clock only runs while the scene is on screen (so the copy hidden by CSS never
+    // animates), and the loop ends with the film instead of idling forever.
+    let played = 0;
+    let resumedAt: number | null = null;
+    let finished = false;
     const loop = (now: number) => {
-      if (start === null) start = now;
-      const tt = (now - start) / 1000;
-      // after the film, throttle to ~20fps ambient motion
-      if (tt < DURATION + 1 || now - last > 50) {
-        last = now;
-        setT(tt);
+      if (resumedAt === null) resumedAt = now;
+      const tt = played + (now - resumedAt) / 1000;
+      setT(tt);
+      if (tt > DURATION + 0.5) {
+        finished = true;
+        raf.current = null;
+        return;
       }
       raf.current = requestAnimationFrame(loop);
     };
-    raf.current = requestAnimationFrame(loop);
+    const pause = () => {
+      if (raf.current === null) return;
+      cancelAnimationFrame(raf.current);
+      raf.current = null;
+      if (resumedAt !== null) played += (performance.now() - resumedAt) / 1000;
+      resumedAt = null;
+    };
+    const io = new IntersectionObserver((entries) => {
+      const onScreen = entries[entries.length - 1]?.isIntersecting ?? false;
+      if (!onScreen) pause();
+      else if (!finished && raf.current === null) raf.current = requestAnimationFrame(loop);
+    });
+    io.observe(node);
     return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
+      io.disconnect();
+      pause();
     };
   }, [reduced, run]);
 
   const frame = useMemo(() => (reduced ? staticFrame() : frameAt(t)), [t, reduced]);
 
   return (
-    <div className="absolute inset-0">
-      <Scene f={frame} mobile={mobile} />
+    <div ref={root} className="absolute inset-0">
+      <Scene f={frame} mobile={mobile} uid={uid} />
       {!reduced && t > DURATION + 0.5 && (
         <button
           type="button"

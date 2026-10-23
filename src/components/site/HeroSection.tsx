@@ -1,32 +1,16 @@
 import { ArrowRight } from "lucide-react";
 import { CinematicCarScene } from "./CinematicCarScene";
-import { useEffect, useState } from "react";
-
-function useIsDesktop() {
-  const [v, setV] = useState<boolean | null>(null);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const on = () => setV(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return v;
-}
 
 export function HeroSection({ onPrimary }: { onPrimary: () => void }) {
-  const isDesktop = useIsDesktop();
   return (
     <section id="top" className="relative overflow-hidden bg-obsidian text-snow">
       <div className="relative lg:min-h-[max(100svh,760px)]">
-        {/* Scene: right ~66% on desktop */}
-        {isDesktop === true && (
-          <div className="absolute inset-y-0 right-0 hidden w-[68%] lg:block">
-            <CinematicCarScene />
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-obsidian to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-obsidian to-transparent" />
-          </div>
-        )}
+        {/* Scene: right ~66% on desktop. Both scenes are server-rendered; CSS shows one. */}
+        <div className="absolute inset-y-0 right-0 hidden w-[68%] lg:block">
+          <CinematicCarScene />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-obsidian to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-obsidian to-transparent" />
+        </div>
 
         <div className="container-site relative z-10 flex flex-col pt-[calc(var(--nav-h)+2.5rem)] lg:min-h-[max(100svh,760px)] lg:justify-center lg:pt-[var(--nav-h)]">
           <div className="max-w-xl lg:max-w-[34rem]">
@@ -62,12 +46,10 @@ export function HeroSection({ onPrimary }: { onPrimary: () => void }) {
       </div>
 
       {/* Mobile / tablet scene */}
-      {isDesktop === false && (
-        <div className="relative mt-10 aspect-[4/3.4] w-full lg:hidden">
-          <CinematicCarScene mobile />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-obsidian to-transparent" />
-        </div>
-      )}
+      <div className="relative mt-10 aspect-[4/3.4] w-full lg:hidden">
+        <CinematicCarScene mobile />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-obsidian to-transparent" />
+      </div>
     </section>
   );
 }
