@@ -1,63 +1,39 @@
-import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Navigation } from "@/components/site/Navigation";
 import { HeroSection } from "@/components/site/HeroSection";
 import {
-  AcquisitionEngine,
-  CaseStudies,
-  CommitmentNotice,
-  ExecutionTimeline,
-  HowItWorks,
-  PositioningSection,
-  PricingSection,
+  BuildSection,
+  FaqSection,
+  HowItWorksSection,
+  LinkedInBrandSection,
   ProblemSection,
-  WhyUp2linkd,
-} from "@/components/site/Sections";
-import { FAQAccordion, FinalCTA, Footer } from "@/components/site/Conversion";
-import type { PackageId } from "@/config/site";
+  ServicesSection,
+} from "@/components/site/HomeSections";
+import { CtaBand } from "@/components/site/PageBlocks";
+import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "up2linkd — Two channels. One acquisition engine." },
-      { name: "description", content: "up2linkd helps B2B agencies build structured client acquisition through Upwork, LinkedIn, or both. 90-day minimum engagements." },
-      { property: "og:title", content: "up2linkd — Stop chasing growth. Build the engine." },
-      { property: "og:description", content: "Structured Upwork and LinkedIn client acquisition for B2B agencies." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: () =>
+    pageHead(
+      "Up2Linkd — Upwork & LinkedIn client acquisition",
+      "Up2Linkd helps agencies and skilled freelancers strengthen their positioning, build professional visibility, and create a focused client-acquisition process through Upwork and LinkedIn.",
+    ),
   component: Index,
 });
 
 function Index() {
-  const [selected, setSelected] = useState<PackageId | "unsure" | "">("");
-  const [focusToken, setFocusToken] = useState(0);
-
-  const openForm = (pkg?: PackageId) => {
-    if (pkg) setSelected(pkg);
-    setFocusToken((n) => n + 1);
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
-    <div className="overflow-x-clip">
-      <Navigation onBook={() => openForm()} />
-      <main>
-        <HeroSection onPrimary={() => openForm()} />
-        <PositioningSection />
-        <ProblemSection />
-        <AcquisitionEngine />
-        <PricingSection onSelect={(id) => openForm(id)} />
-        <CommitmentNotice />
-        <ExecutionTimeline />
-        <HowItWorks />
-        <CaseStudies />
-        <WhyUp2linkd />
-        <FAQAccordion />
-        <FinalCTA selected={selected} focusToken={focusToken} onPrimary={() => openForm()} />
-      </main>
-      <Footer />
-    </div>
+    <>
+      <HeroSection />
+      <ProblemSection />
+      <ServicesSection />
+      <BuildSection />
+      <LinkedInBrandSection />
+      <HowItWorksSection />
+      <FaqSection />
+      <CtaBand
+        title="Ready to build a clearer path to clients?"
+        text="Tell us where you are today and what you want to improve."
+      />
+    </>
   );
 }

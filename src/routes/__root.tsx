@@ -9,28 +9,30 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { type ReactNode } from "react";
+import { buttonStyles } from "@/components/site/buttonStyles";
+import { BookCallButton } from "@/components/site/PageBlocks";
+import { Footer } from "@/components/site/Footer";
+import { Navigation } from "@/components/site/Navigation";
 
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+    <section className="surface-dark bg-obsidian text-paper">
+      <div className="container-site flex min-h-[70svh] flex-col justify-center pb-24 pt-[calc(var(--nav-h)+4rem)]">
+        <p className="eyebrow text-ash">404</p>
+        <h1 className="type-page mt-5">Page not found</h1>
+        <p className="mt-5 max-w-md text-lg text-ash">
+          The page you're looking for doesn't exist or has moved.
         </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <BookCallButton />
+          <Link to="/" className={buttonStyles.quietDark}>
+            Go to the homepage
           </Link>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -39,28 +41,24 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="surface-dark flex min-h-screen items-center justify-center bg-obsidian px-5 text-paper">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <h1 className="type-section">This page didn't load</h1>
+        <p className="mt-4 text-ash">
+          Something went wrong on our end. You can try again or head back home.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button
+            type="button"
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className={buttonStyles.primary}
           >
             Try again
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
+          <a href="/" className={buttonStyles.quietDark}>
             Go home
           </a>
         </div>
@@ -74,10 +72,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "up2linkd" },
-      { name: "description", content: "Structured Upwork and LinkedIn client acquisition for B2B agencies." },
+      { title: "Up2Linkd" },
+      {
+        name: "description",
+        content:
+          "Upwork and LinkedIn client acquisition for agencies and skilled freelancers: clearer positioning, professional profiles, and a focused acquisition process.",
+      },
+      { property: "og:site_name", content: "Up2Linkd" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
       { name: "theme-color", content: "#0A0A0A" },
     ],
     links: [
@@ -91,7 +94,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -119,8 +124,18 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-lime focus:px-5 focus:py-3 focus:font-semibold focus:text-obsidian"
+      >
+        Skip to content
+      </a>
+      <Navigation />
+      <main id="main" className="overflow-x-clip">
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </main>
+      <Footer />
     </QueryClientProvider>
   );
 }

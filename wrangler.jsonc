@@ -1,0 +1,5 @@
+// Nitro merges this into the Worker config it generates at build time (.output/server/wrangler.json).
+// Pin the name to the Worker in the Cloudflare dashboard; otherwise Nitro derives one from the git remote.
+{
+  "name": "up2link-growth-journey",
+}

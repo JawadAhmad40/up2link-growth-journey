@@ -9,6 +9,8 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // Jump to the top of a new page; CSS smooth scrolling is only for in-page anchors
+    scrollRestorationBehavior: "instant",
     defaultPreloadStaleTime: 0,
   });
 

@@ -1,16 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage } from "@/components/site/LegalPage";
+import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => ({
-    meta: [
-      { title: "Terms of Service — up2linkd" },
-      { name: "description", content: "up2linkd terms of service (placeholder, pending configuration)." },
-      { property: "og:title", content: "Terms of Service — up2linkd" },
-      { property: "og:description", content: "up2linkd terms of service." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: () => pageHead("Terms of Service — Up2Linkd", "Up2Linkd terms of service."),
   component: () => <LegalPage title="Terms of Service" />,
 });

@@ -10,12 +10,27 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as OurApproachRouteImport } from './routes/our-approach'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ServicesAgencyGrowthRouteImport } from './routes/services/agency-growth'
+import { Route as ServicesFreelancerGrowthRouteImport } from './routes/services/freelancer-growth'
+import { Route as ServicesUpworkLaunchRouteImport } from './routes/services/upwork-launch'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OurApproachRoute = OurApproachRouteImport.update({
+  id: '/our-approach',
+  path: '/our-approach',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -28,35 +43,96 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesAgencyGrowthRoute = ServicesAgencyGrowthRouteImport.update({
+  id: '/services/agency-growth',
+  path: '/services/agency-growth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesFreelancerGrowthRoute =
+  ServicesFreelancerGrowthRouteImport.update({
+    id: '/services/freelancer-growth',
+    path: '/services/freelancer-growth',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ServicesUpworkLaunchRoute = ServicesUpworkLaunchRouteImport.update({
+  id: '/services/upwork-launch',
+  path: '/services/upwork-launch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/our-approach': typeof OurApproachRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/services/agency-growth': typeof ServicesAgencyGrowthRoute
+  '/services/freelancer-growth': typeof ServicesFreelancerGrowthRoute
+  '/services/upwork-launch': typeof ServicesUpworkLaunchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/our-approach': typeof OurApproachRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/services/agency-growth': typeof ServicesAgencyGrowthRoute
+  '/services/freelancer-growth': typeof ServicesFreelancerGrowthRoute
+  '/services/upwork-launch': typeof ServicesUpworkLaunchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/our-approach': typeof OurApproachRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/services/agency-growth': typeof ServicesAgencyGrowthRoute
+  '/services/freelancer-growth': typeof ServicesFreelancerGrowthRoute
+  '/services/upwork-launch': typeof ServicesUpworkLaunchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/privacy' | '/terms'
+  fullPaths:
+    | '/'
+    | '/contact'
+    | '/our-approach'
+    | '/privacy'
+    | '/terms'
+    | '/services/agency-growth'
+    | '/services/freelancer-growth'
+    | '/services/upwork-launch'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/privacy' | '/terms'
-  id: '__root__' | '/' | '/privacy' | '/terms'
+  to:
+    | '/'
+    | '/contact'
+    | '/our-approach'
+    | '/privacy'
+    | '/terms'
+    | '/services/agency-growth'
+    | '/services/freelancer-growth'
+    | '/services/upwork-launch'
+  id:
+    | '__root__'
+    | '/'
+    | '/contact'
+    | '/our-approach'
+    | '/privacy'
+    | '/terms'
+    | '/services/agency-growth'
+    | '/services/freelancer-growth'
+    | '/services/upwork-launch'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ContactRoute: typeof ContactRoute
+  OurApproachRoute: typeof OurApproachRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  ServicesAgencyGrowthRoute: typeof ServicesAgencyGrowthRoute
+  ServicesFreelancerGrowthRoute: typeof ServicesFreelancerGrowthRoute
+  ServicesUpworkLaunchRoute: typeof ServicesUpworkLaunchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +142,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/our-approach': {
+      id: '/our-approach'
+      path: '/our-approach'
+      fullPath: '/our-approach'
+      preLoaderRoute: typeof OurApproachRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -82,13 +172,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/agency-growth': {
+      id: '/services/agency-growth'
+      path: '/services/agency-growth'
+      fullPath: '/services/agency-growth'
+      preLoaderRoute: typeof ServicesAgencyGrowthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/freelancer-growth': {
+      id: '/services/freelancer-growth'
+      path: '/services/freelancer-growth'
+      fullPath: '/services/freelancer-growth'
+      preLoaderRoute: typeof ServicesFreelancerGrowthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/upwork-launch': {
+      id: '/services/upwork-launch'
+      path: '/services/upwork-launch'
+      fullPath: '/services/upwork-launch'
+      preLoaderRoute: typeof ServicesUpworkLaunchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ContactRoute: ContactRoute,
+  OurApproachRoute: OurApproachRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  ServicesAgencyGrowthRoute: ServicesAgencyGrowthRoute,
+  ServicesFreelancerGrowthRoute: ServicesFreelancerGrowthRoute,
+  ServicesUpworkLaunchRoute: ServicesUpworkLaunchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

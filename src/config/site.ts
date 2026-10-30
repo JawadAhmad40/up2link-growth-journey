@@ -1,170 +1,127 @@
 /**
- * Central business configuration for up2linkd.
- * Edit values here — components render from this file.
- * Unknown commercial values are `null` on purpose: the UI shows an honest
- * "Discuss pricing" state instead of an invented number.
+ * Central business configuration for Up2Linkd.
+ * Edit values here — the navigation, service cards and contact form render from this file.
+ * Unknown values are `null` on purpose so the UI never invents them.
  */
 
 export const siteConfig = {
-  name: "up2linkd",
-  domain: "up2linkd.com",
-  /** External booking link (e.g. Calendly). null → CTAs open the inquiry form. */
+  name: "Up2Linkd",
+  /** External booking link (e.g. Calendly). null → the contact page offers only the form. */
   bookingUrl: null as string | null,
-  /** Company LinkedIn profile URL. null → link is hidden. */
+  /** Company LinkedIn page. null → the footer hides the link. */
   linkedinUrl: null as string | null,
-  minimumCommitmentDays: 90,
+  /** Minimum Agency Growth engagement, in days. */
+  agencyMinimumDays: 90,
 };
 
-export type PackageId = "upwork" | "dual" | "linkedin";
+export const customerTypes = [
+  { id: "agency-owner", label: "Agency owner" },
+  { id: "existing-freelancer", label: "Existing freelancer" },
+  { id: "new-to-upwork", label: "Skilled professional new to Upwork" },
+] as const;
+export type CustomerType = (typeof customerTypes)[number]["id"];
 
-export interface PricingPackage {
-  id: PackageId;
+export const channels = [
+  { id: "upwork", label: "Upwork" },
+  { id: "linkedin", label: "LinkedIn" },
+  { id: "both", label: "Both" },
+  { id: "not-sure", label: "Not sure" },
+] as const;
+export type Channel = (typeof channels)[number]["id"];
+
+export const serviceIds = ["agency-growth", "freelancer-growth", "upwork-launch"] as const;
+export type ServiceId = (typeof serviceIds)[number];
+
+export interface Service {
+  id: ServiceId;
   name: string;
-  label: string;
-  idealFor: string;
-  description: string;
-  /** Monthly price in `currency`. null = not yet configured. */
-  monthlyPrice: number | null;
-  /** Total value for the full minimum commitment. null = not yet configured. */
-  commitmentTotal: number | null;
-  billingFrequency: string | null;
-  setupFee: number | null;
-  currency: string;
+  path: `/services/${ServiceId}`;
+  /** One line under the name in the Services menu. */
+  menuLine: string;
+  /** Who the service is for, as shown on the homepage card. */
+  audience: string;
+  includesLabel: string;
   includes: string[];
-  exclusion?: string;
-  cta: string;
-  recommended: boolean;
-  minimumCommitmentDays: number;
+  /** Customer type the contact form assumes when opened from this service. */
+  customerType: CustomerType;
+  flagship: boolean;
 }
 
-export const packages: PricingPackage[] = [
+export const services: Service[] = [
   {
-    id: "upwork",
-    name: "Upwork Acquisition Engine",
-    label: "Upwork-focused",
-    idealFor: "B2B agencies that want to strengthen their Upwork acquisition process.",
-    description:
-      "Build a more structured system for positioning your agency, targeting opportunities, submitting stronger proposals, and managing follow-up on Upwork.",
-    monthlyPrice: null,
-    commitmentTotal: null,
-    billingFrequency: null,
-    setupFee: null,
-    currency: "USD",
+    id: "agency-growth",
+    name: "Agency Growth",
+    path: "/services/agency-growth",
+    menuLine: "Upwork and LinkedIn acquisition for established agencies",
+    audience:
+      "For established agencies wanting a stronger acquisition process through Upwork, LinkedIn, or both.",
+    includesLabel: "May include",
     includes: [
-      "Upwork profile and positioning review",
-      "Ideal project and client targeting",
-      "Offer and portfolio recommendations",
-      "Proposal strategy and optimization",
-      "Acquisition workflow setup",
-      "Follow-up process",
-      "Performance tracking and review",
+      "Agency positioning",
+      "Upwork acquisition",
+      "LinkedIn outreach",
+      "Founder LinkedIn personal brand",
+      "Follow-up and performance reviews",
     ],
-    exclusion: "LinkedIn acquisition management is not included in this package.",
-    cta: "Choose Upwork",
-    recommended: false,
-    minimumCommitmentDays: 90,
+    customerType: "agency-owner",
+    flagship: true,
   },
   {
-    id: "dual",
-    name: "Dual-Channel Acquisition Engine",
-    label: "Recommended",
-    idealFor: "B2B agencies ready to coordinate Upwork and LinkedIn.",
-    description:
-      "Connect two acquisition channels through a coordinated strategy, structured execution, and ongoing optimization.",
-    monthlyPrice: null,
-    commitmentTotal: null,
-    billingFrequency: null,
-    setupFee: null,
-    currency: "USD",
+    id: "freelancer-growth",
+    name: "Freelancer Growth",
+    path: "/services/freelancer-growth",
+    menuLine: "Stronger positioning and steadier acquisition for freelancers",
+    audience:
+      "For existing freelancers who need stronger positioning and more consistent acquisition.",
+    includesLabel: "May include",
     includes: [
-      "Everything in the Upwork package",
-      "LinkedIn acquisition strategy",
-      "Ideal customer and decision-maker targeting",
-      "Prospect research workflow",
-      "LinkedIn outreach messaging",
-      "Follow-up across both channels",
-      "Combined acquisition reporting",
-      "Regular optimization reviews",
+      "Service positioning",
+      "Upwork profile and portfolio",
+      "LinkedIn profile optimization",
+      "Personal-brand direction",
+      "Content pillars and post ideas",
+      "Proposal and outreach improvement",
+      "Follow-up process",
     ],
-    cta: "Build My Acquisition Engine",
-    recommended: true,
-    minimumCommitmentDays: 90,
+    customerType: "existing-freelancer",
+    flagship: false,
   },
   {
-    id: "linkedin",
-    name: "LinkedIn Acquisition Engine",
-    label: "LinkedIn-focused",
-    idealFor:
-      "B2B agencies that want to establish a structured LinkedIn-led acquisition process.",
-    description:
-      "Build a focused system for identifying relevant decision-makers, conducting targeted outreach, and managing follow-up.",
-    monthlyPrice: null,
-    commitmentTotal: null,
-    billingFrequency: null,
-    setupFee: null,
-    currency: "USD",
+    id: "upwork-launch",
+    name: "Upwork Launch",
+    path: "/services/upwork-launch",
+    menuLine: "A professional start on Upwork for skilled professionals",
+    audience:
+      "For skilled professionals who are new to Upwork and already have a skill they can deliver.",
+    includesLabel: "Includes",
     includes: [
-      "LinkedIn acquisition strategy",
-      "Ideal customer definition",
-      "Decision-maker targeting",
-      "Prospect research workflow",
-      "Outreach messaging",
-      "Follow-up process",
-      "Pipeline tracking and review",
-      "Ongoing workflow optimization",
+      "Focused service offer",
+      "Upwork profile preparation",
+      "Portfolio planning",
+      "Opportunity selection",
+      "Proposal guidance",
+      "Starting activity plan",
     ],
-    exclusion: "Upwork acquisition management is not included in this package.",
-    cta: "Choose LinkedIn",
-    recommended: false,
-    minimumCommitmentDays: 90,
+    customerType: "new-to-upwork",
+    flagship: false,
   },
 ];
 
-export function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+export function getService(id: ServiceId): Service {
+  return services.find((s) => s.id === id)!;
 }
 
-/** Pricing is only shown when a monthly price has been configured. */
-export function getPriceDisplay(pkg: PricingPackage) {
-  if (pkg.monthlyPrice == null) {
-    return { configured: false as const, primary: "Discuss pricing", note: "Pricing shared after a short discovery conversation." };
-  }
-  return {
-    configured: true as const,
-    primary: formatMoney(pkg.monthlyPrice, pkg.currency),
-    unit: pkg.billingFrequency ?? "per month",
-    total:
-      pkg.commitmentTotal != null
-        ? `${formatMoney(pkg.commitmentTotal, pkg.currency)} total for ${pkg.minimumCommitmentDays} days`
-        : null,
-    setup: pkg.setupFee != null ? `${formatMoney(pkg.setupFee, pkg.currency)} setup fee` : null,
-  };
+/** Search params the contact page accepts, so each CTA can preselect a service or channel. */
+export interface ContactSearch {
+  service?: ServiceId | undefined;
+  channel?: Channel | undefined;
 }
 
-export interface CaseStudy {
-  category: string;
-  challenge: string;
-  baseline: string;
-  work: string;
-  metrics: { label: string; value: string }[];
-  period: string;
-  outcome: string;
+export function parseContactSearch(search: Record<string, unknown>): ContactSearch {
+  const parsed: ContactSearch = {};
+  const service = serviceIds.find((id) => id === search["service"]);
+  const channel = channels.find((c) => c.id === search["channel"])?.id;
+  if (service) parsed.service = service;
+  if (channel) parsed.channel = channel;
+  return parsed;
 }
-
-/** Add only verified, client-approved evidence here. Empty → honest empty state. */
-export const caseStudies: CaseStudy[] = [];
-
-export const agencyTypes = [
-  "Software development",
-  "IT services",
-  "AI automation",
-  "Digital marketing",
-  "Design & creative",
-  "B2B consulting",
-  "Freelancer growing into an agency",
-  "Other B2B agency",
-];
